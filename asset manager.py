@@ -163,11 +163,45 @@ def hexToRoom(input, object):
     return newRoom
 
 
+def filter(input):
+    i = 0
+    g = ""
+    while i < len(input):
+        s = 0
+        get = ""
+        while s < 16:
+            get += input[i + s]
+            s += 1
+        if get != "0000000000000000":
+            g += get + " - \n"
+        i += 16
+    return g
+
+def compare(ins1, ins2):
+    in1 = open(ins1, 'r').readlines()
+    in2 = open(ins2, 'r').readlines()
+    i = 0
+    while i < len(in1):
+        line = in1[i]
+        content = line.split(" - ")[0] + " -"
+        j = 0
+        while j < len(in2):
+            line2 = in2[j]
+            if line2.find(content) != -1:
+                in2[j] = line
+            j += 1
+        i += 1
+    with open(ins2, "w") as outfile:
+        outfile.writelines(in2)
+
+
 #print(hexToMap(boip, 3, 4))
 #print(mapToHex(hexToMap(boip, 3, 4)))
 print(hexToFloat("44960000"))
 print(floatToHex(hexToFloat("44960000")))
-
+boingus = ""
+print(boing(boingus))
+compare("C:\\Users\\Nathaniel Robinson\\Downloads\\ALPointers.txt", "C:\\Users\\Nathaniel Robinson\\Downloads\\JLPointers.txt")
 
 
 
