@@ -1,0 +1,6 @@
+mountain, ci4, 64, 64, 0
+mountain, pal
+weirdGrass, ci4, 64, 64, 1
+weirdGrass, pal
+grass, ci4, 64, 64, 2
+grass, pal
