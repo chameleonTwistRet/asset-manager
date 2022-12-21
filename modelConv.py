@@ -348,6 +348,7 @@ while currentlyAT < len(bins):
     s = binToImg(bins[currentlyAT], ctx, currentlyAT)
     blender.append(["txt", s[0]])
     currentlyAT += s[1]
+blender.append(["ctx", ctx])
 with open(outfile, 'wb') as file:
     pickle.dump(blender, file)
 for each in bins:

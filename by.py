@@ -2,7 +2,7 @@ import pickle
 import os
 import bpy
 from copy import *
-
+import bmesh
 
 
 offset = 0x80400000
@@ -15,6 +15,7 @@ data = pickle.loads(open(infile, 'rb').read())
 vtx = []
 gfx = []
 txt = []
+ctx = []
 mtx = []
 col = []
 
@@ -50,7 +51,6 @@ mesh = bpy.data.meshes.new(name)
 object = bpy.data.objects.new(name, mesh)
 bpy.context.collection.objects.link(object)
 
-print(len(vtx))
 verts = []
 scalar = 100.0
 for each in vtx:
@@ -62,8 +62,7 @@ for each in vtx:
 
 i = 0
 while i < len(txt):
-    mat = newMaterial(i)
-    object.data.materials.append(mat)
+    object.data.materials.append(newMaterial(i))
     i += 1
 
 #find copies
@@ -85,15 +84,30 @@ while i < len(txt):
 
 
 
-inst = []
-for each in gfx:
-    if each[0] == "G_TRI1" or each[0] == "G_VTX":
-        inst.append(each)
 faces = []
 bank = []
-materialIndex = -1
+materialIndex = 0
 materialAssigns = []
-for each in inst:
+materials = []
+
+for each in gfx:
+    if each[0] == "G_SETTIMG":
+        found = False
+        for check in materials:
+            if each == check:
+                found = True
+                break
+        if found:
+            continue
+        materials.append(each)
+i = 0
+while i < len(ctx):
+    if ctx[i]["type"] == "pal":
+        txt.insert(i, None)
+    i += 1
+
+
+for each in gfx:
     if each[0] == "G_VTX":
         toStart = int(each[1][3], 16)
         number = hex(each[2][3]).replace("0x", "") + hex(each[3][3]).replace("0x", "")
@@ -143,16 +157,69 @@ for each in inst:
         faces.append(send)
         materialAssigns.append([len(faces) - 1, materialIndex])
     elif each[0] == "G_SETTIMG":
-        materialIndex += 1
-
+        i = 0
+        while i < len(materials):
+            if materials[i] == each:
+                materialIndex = i
+                break
+            i += 1
 
 
 
 mesh.from_pydata(verts, [], faces)
-#for each in materialAssigns:
-#    object.active_material_index = each[1]
-#    mesh.faces[each[0]].select = True
-#    bpy.ops.object.material.slot_assign()
+
+bpy.context.view_layer.objects.active = object
+mesher = object.data
+bpy.ops.object.mode_set(mode='EDIT')
+bm = bmesh.from_edit_mesh(mesher)
+toAssign = [face for face in mesh.polygons]
+bpy.context.tool_settings.mesh_select_mode = [False, False, True]
+
+i = 0
+bm.faces.ensure_lookup_table()
+while i < len(bm.faces):
+    bm.faces[i].select = True
+    get = materialAssigns[i][1]
+    while txt[get] == None:
+        get -= 1
+    s = 0
+    back = 0
+    #print(str(get) + " before")
+    while s < get:
+        if txt[s] == None:
+            back += 1
+        s += 1
+    get -= back
+    #print(str(get) + " after")
+    object.active_material_index = get
+    bpy.ops.object.material_slot_assign()
+    bm.faces[i].select = False
+    i += 1
+bpy.ops.uv.unwrap()
+uv_layer = bm.loops.layers.uv.verify()
+i = 0
+while i < len(bm.faces):
+    f = bm.faces[i]
+    getVerts = faces[i]
+    s = 0
+    for l in f.loops:
+        v = vtx[getVerts[s]]
+        zoink = 32768.0 / 8.0
+        txtx = v["txtX"] / zoink
+        txty = v["txtY"] / zoink
+        l[uv_layer].uv[0] = txtx
+        l[uv_layer].uv[1] = txty
+        print("x: " + str(l[uv_layer].uv[0]))
+        print("y: " + str(l[uv_layer].uv[1]))
+        s += 1
+        print(v)
+        #l[uv_layer].uv = (l[uv_layer].uv[0], l[uv_layer].uv[1] + 1)
+    i += 1
+
+bpy.ops.object.mode_set(mode='OBJECT')
+    #object.active_material_index = each[1]
+    #mesh.faces[each[0]].select = True
+    #bpy.ops.object.material.slot_assign()
 
 
 #dont bother calculating the true value in this script unless its really easy
